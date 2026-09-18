@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Forces Coaching Center — Attendance Management System</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B2545">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FCC Attendance">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --navy:#0B2545;
+  --navy-2:#123064;
+  --white:#FFFFFF;
+  --sky:#38BDF8;
+  --sky-soft:#E0F6FF;
+  --green:#22C55E;
+  --green-soft:#DCFCE7;
+  --yellow:#FACC15;
+  --yellow-soft:#FEF9C3;
+  --red:#EF4444;
+  --red-soft:#FEE2E2;
+  --ink:#0F172A;
+  --muted:#64748B;
+  --line:#E2E8F0;
+  --bg:#F4F7FB;
+  --radius:10px;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;}
+#app{display:flex;min-height:100vh;}
+
+/* SIDEBAR */
+#sidebar{width:230px;background:var(--navy);color:#fff;flex-shrink:0;display:flex;flex-direction:column;}
+.brand{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;gap:10px;align-items:center;}
+.brand .logo{width:42px;height:42px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;padding:2px;}
+.brand .logo img{width:100%;height:100%;object-fit:contain;border-radius:50%;}
+.brand .name{font-weight:700;font-size:13.5px;line-height:1.25;}
+.brand .name span{display:block;font-weight:400;font-size:11px;color:#9fb3d9;}
+.nav-group{padding:10px 0;}
+.nav-label{padding:8px 16px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#7f95c0;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;color:#dbe6f7;font-size:13.5px;}
+.nav-item:hover{background:rgba(255,255,255,.06);}
+.nav-item.active{background:var(--sky);color:var(--navy);font-weight:700;}
+.class-list{max-height:340px;overflow-y:auto;}
+.class-list .nav-item{padding-left:28px;font-size:13px;}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;min-width:0;}
+#topbar{background:#fff;border-bottom:1px solid var(--line);padding:12px 22px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:5;}
+#topbar h1{font-size:17px;margin:0;font-weight:700;color:var(--navy);flex-shrink:0;}
+#searchBox{flex:1;max-width:420px;position:relative;}
+#searchBox input{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
+#searchResults{position:absolute;top:38px;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:320px;overflow-y:auto;z-index:20;display:none;}
+#searchResults .res{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;}
+#searchResults .res:hover{background:var(--sky-soft);}
+#searchResults .res b{color:var(--navy);}
+#searchResults .res small{color:var(--muted);display:block;}
+#saveStatus{font-size:12px;color:var(--muted);flex-shrink:0;}
+
+#content{padding:22px;flex:1;overflow-x:auto;}
+h2.page-title{color:var(--navy);margin:0 0 4px;font-size:19px;}
+.sub{color:var(--muted);font-size:12.5px;margin-bottom:16px;}
+
+.card{background:#fff;border-radius:var(--radius);border:1px solid var(--line);padding:16px;margin-bottom:16px;}
+.card h3{margin:0 0 12px;font-size:14.5px;color:var(--navy);}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px;}
+.kpi{background:#fff;border-radius:var(--radius);border:1px solid var(--line);border-top:4px solid var(--sky);padding:14px 16px;}
+.kpi .v{font-size:22px;font-weight:800;color:var(--navy);}
+.kpi .l{font-size:12px;color:var(--muted);margin-top:2px;}
+.kpi.green{border-top-color:var(--green);} .kpi.red{border-top-color:var(--red);} .kpi.yellow{border-top-color:var(--yellow);}
+
+.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;}
+.grid2 .card canvas{max-height:260px;}
+@media(max-width:1000px){.grid2{grid-template-columns:1fr;}}
+
+table{border-collapse:collapse;width:100%;font-size:12.5px;}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;white-space:nowrap;}
+th{background:var(--navy);color:#fff;position:sticky;top:0;}
+tr:nth-child(even) td{background:#F8FAFC;}
+.tablewrap{overflow-x:auto;border-radius:8px;border:1px solid var(--line);}
+
+.btn{background:var(--navy);color:#fff;border:none;padding:8px 14px;border-radius:7px;font-size:13px;cursor:pointer;font-weight:600;}
+.btn:hover{background:var(--navy-2);}
+.btn.sky{background:var(--sky);color:var(--navy);}
+.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--navy);}
+.btn.danger{background:var(--red);}
+.btn.sm{padding:5px 9px;font-size:12px;}
+
+input,select{font-family:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.toolbar label{font-size:12.5px;color:var(--muted);margin-right:4px;}
+
+.att-select{width:52px;padding:2px;border-radius:4px;border:1px solid #cbd5e1;font-weight:700;text-align:center;font-size:12px;}
+.att-select.P{background:var(--green);color:#fff;}
+.att-select.A{background:var(--red);color:#fff;}
+.att-select.L{background:var(--yellow);color:#1f2937;}
+.att-select.H{background:var(--sky);color:#fff;}
+.att-select.sun{background:var(--sky);color:#fff;opacity:.85;}
+
+.status-badge{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;}
+.status-Excellent{background:var(--green-soft);color:#166534;}
+.status-VeryGood{background:#DCFCE7;color:#15803d;}
+.status-Good{background:var(--sky-soft);color:#075985;}
+.status-Average{background:var(--yellow-soft);color:#854d0e;}
+.status-NeedsImprovement{background:#FFE4CC;color:#9a3412;}
+.status-Critical{background:var(--red-soft);color:#991b1b;}
+
+.pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;background:var(--sky-soft);color:var(--navy);}
+.small-muted{font-size:11.5px;color:var(--muted);}
+.flexrow{display:flex;gap:8px;align-items:center;}
+.empty{padding:30px;text-align:center;color:var(--muted);}
+
+.teach-cell{display:flex;flex-direction:column;gap:2px;align-items:center;}
+.teach-cell .att-select{width:48px;}
+.teach-cell input[type=time]{width:70px;padding:1px;font-size:11px;border-radius:4px;border:1px solid #cbd5e1;}
+.late-badge{display:inline-block;background:#FFEDD5;color:#9a3412;font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:8px;margin-top:1px;}
+
+.fee-select{width:80px;font-weight:700;}
+.fee-select.Paid{background:var(--green-soft);color:#166534;}
+.fee-select.Unpaid{background:var(--red-soft);color:#991b1b;}
+
+/* MOBILE / PWA */
+#hamburger{display:none;background:none;border:none;font-size:22px;cursor:pointer;color:var(--navy);padding:4px 6px;flex-shrink:0;}
+#sidebarOverlay{display:none;}
+@media(max-width:860px){
+  #hamburger{display:block;}
+  #sidebar{position:fixed;top:0;left:0;bottom:0;z-index:50;transform:translateX(-100%);transition:transform .22s ease;width:250px;box-shadow:8px 0 24px rgba(0,0,0,.25);}
+  #sidebar.open{transform:translateX(0);}
+  #sidebarOverlay.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40;}
+  #topbar{padding:10px 12px;gap:10px;}
+  #topbar h1{font-size:15px;}
+  #searchBox{max-width:none;}
+  #content{padding:12px;}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .kpi{padding:10px 12px;}
+  .kpi .v{font-size:18px;}
+  .toolbar{gap:8px;}
+  .btn{padding:10px 14px;}
+  input,select{padding:8px;font-size:14px;}
+  table{font-size:11.5px;}
+  th,td{padding:5px 6px;}
+}
+@media(display-mode: standalone){
+  #topbar{padding-top:calc(12px + env(safe-area-inset-top));}
+  body{padding-bottom:env(safe-area-inset-bottom);}
+}
+@media print{
+  #sidebar,#topbar,.no-print{display:none !important;}
+  #content{padding:0;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebarOverlay"></div>
+  <div id="sidebar">
+    <div class="brand">
+      <div class="logo" id="logoInitials"><img src="logo-sidebar.png" alt="Forces Coaching Center logo" onerror="this.parentElement.textContent='FC'"></div>
+      <div class="name" id="brandName">Forces Coaching Center<span id="brandSession">Session —</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-item" data-page="dashboard">📊 Dashboard</div>
+      <div class="nav-item" data-page="teachers">👩‍🏫 Teacher Attendance</div>
+      <div class="nav-item" data-page="absent">📞 Daily Absent Report</div>
+      <div class="nav-item" data-page="studentreport">🧾 Student Report</div>
+      <div class="nav-item" data-page="settings">⚙️ Settings</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Classes</div>
+      <div class="class-list" id="classList"></div>
+    </div>
+  </div>
+  <div id="main">
+    <div id="topbar">
+      <button id="hamburger" aria-label="Menu">☰</button>
+      <h1 id="topTitle">Dashboard</h1>
+      <div id="searchBox">
+        <input type="text" id="searchInput" placeholder="Search student by name, roll no, admission no, or contact...">
+        <div id="searchResults"></div>
+      </div>
+      <div id="saveStatus">Ready</div>
+    </div>
+    <div id="content"></div>
+  </div>
+</div>
+
+<script>
+/* ============================= CONFIG ============================= */
+const STATUS_COLORS = {P:'#22C55E',A:'#EF4444',L:'#FACC15',H:'#38BDF8'};
+const DEFAULT_CLASSES = ['Playgroup','Nursery','Prep','One','Two','Three','Four','Five','Six','Seven','Eight','9th','10th','1st Year','2nd Year'];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function slug(s){return s.toLowerCase().replace(/\s+/g,'-');}
+
+/* ============================= STORAGE ============================= */
+/* Uses the browser's localStorage so data is saved permanently on THIS computer/browser,
+   even after closing the file, refreshing, or restarting the computer.
+   Data is tied to this file's location + this browser (not shared across devices). */
+const LS_PREFIX = 'fcc_attendance:';
+async function stGet(key){
+  try{
+    const raw = localStorage.getItem(LS_PREFIX+key);
+    return raw ? { value: raw } && JSON.parse(raw) : null;
+  }catch(e){ console.error('storage read error', e); return null; }
+}
+async function stSet(key,value){
+  try{ localStorage.setItem(LS_PREFIX+key, JSON.stringify(value)); flashSave(); }
+  catch(e){ console.error('storage write error',e); flashSave(true); }
+}
+let saveTimer=null;
+function flashSave(err){
+  const el=document.getElementById('saveStatus');
+  if(err){ el.textContent='⚠ save failed'; el.style.color='var(--red)'; return; }
+  el.textContent='Saving…'; el.style.color='var(--muted)';
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{ el.textContent='All changes saved ✓'; el.style.color='var(--green)'; },400);
+}
+
+/* ============================= STATE ============================= */
+let DB = {
+  settings: null,           // {instituteName, session, classes:[{id,name,teacher,contact}], instituteStartTime, lateThresholdMinutes, latePerAbsent, updatedAt}
+  studentsCache: {},        // classId -> array
+  attendanceCache: {},      // "classId|ym" -> {studentId:{day:status}}
+  absentMetaCache: {},      // "date" -> {"classId|studentId": {...}}
+  teachersCache: null,      // array of {id,name,subject,contact}
+  teacherAttCache: {},      // ym -> {teacherId:{day:{status,time}}}
+  feesCache: {}             // "classId|ym" -> {studentId:'Paid'|'Unpaid'}
+};
+let CURRENT = { page:'dashboard', classId:null, ym:null };
+
+function todayYM(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function todayDateStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+async function loadSettings(){
+  let s = await stGet('settings');
+  if(!s){
+    s = {
+      instituteName:'Forces Coaching Center',
+      session: (new Date().getFullYear())+'-'+(new Date().getFullYear()+1),
+      classes: DEFAULT_CLASSES.map(n=>({id:slug(n), name:n, teacher:'', contact:''})),
+      instituteStartTime:'08:00',
+      lateThresholdMinutes:15,
+      latePerAbsent:5,
+      updatedAt: new Date().toISOString()
+    };
+    await stSet('settings', s);
+  }
+  // migrate older saves that don't have the new teacher-lateness settings yet
+  let migrated=false;
+  if(s.instituteStartTime===undefined){ s.instituteStartTime='08:00'; migrated=true; }
+  if(s.lateThresholdMinutes===undefined){ s.lateThresholdMinutes=15; migrated=true; }
+  if(s.latePerAbsent===undefined){ s.latePerAbsent=5; migrated=true; }
+  if(migrated) await stSet('settings', s);
+  DB.settings = s;
+}
+
+async function getStudents(classId){
+  if(DB.studentsCache[classId]) return DB.studentsCache[classId];
+  const arr = (await stGet('students:'+classId)) || [];
+  DB.studentsCache[classId] = arr;
+  return arr;
+}
+async function saveStudents(classId, arr){
+  DB.studentsCache[classId] = arr;
+  await stSet('students:'+classId, arr);
+}
+
+async function getAttendance(classId, ym){
+  const key = classId+'|'+ym;
+  if(DB.attendanceCache[key]) return DB.attendanceCache[key];
+  const data = (await stGet('att:'+classId+':'+ym)) || {};
+  DB.attendanceCache[key] = data;
+  return data;
+}
+async function saveAttendance(classId, ym, data){
+  DB.attendanceCache[classId+'|'+ym] = data;
+  await stSet('att:'+classId+':'+ym, data);
+  DB.settings.updatedAt = new Date().toISOString();
+  await stSet('settings', DB.settings);
+}
+
+async function getAbsentMeta(dateStr){
+  if(DB.absentMetaCache[dateStr]) return DB.absentMetaCache[dateStr];
+  const data = (await stGet('absentmeta:'+dateStr)) || {};
+  DB.absentMetaCache[dateStr] = data;
+  return data;
+}
+async function saveAbsentMeta(dateStr, data){
+  DB.absentMetaCache[dateStr]=data;
+  await stSet('absentmeta:'+dateStr, data);
+}
+
+async function getTeachers(){
+  if(DB.teachersCache) return DB.teachersCache;
+  const arr = (await stGet('teachers')) || [];
+  DB.teachersCache = arr;
+  return arr;
+}
+async function saveTeachers(arr){
+  DB.teachersCache = arr;
+  await stSet('teachers', arr);
+}
+
+async function getTeacherAttendance(ym){
+  if(DB.teacherAttCache[ym]) return DB.teacherAttCache[ym];
+  const data = (await stGet('teacherAtt:'+ym)) || {};
+  DB.teacherAttCache[ym] = data;
+  return data;
+}
+async function saveTeacherAttendance(ym, data){
+  DB.teacherAttCache[ym] = data;
+  await stSet('teacherAtt:'+ym, data);
+  DB.settings.updatedAt = new Date().toISOString();
+  await stSet('settings', DB.settings);
+}
+
+async function getFees(classId, ym){
+  const key = classId+'|'+ym;
+  if(DB.feesCache[key]) return DB.feesCache[key];
+  const data = (await stGet('fees:'+classId+':'+ym)) || {};
+  DB.feesCache[key] = data;
+  return data;
+}
+async function saveFees(classId, ym, data){
+  DB.feesCache[classId+'|'+ym] = data;
+  await stSet('fees:'+classId+':'+ym, data);
+}
+
+/* ============================= COMPUTE HELPERS ============================= */
+function daysInMonth(y,m){ return new Date(y,m,0).getDate(); }
+function isSunday(y,m,d){ return new Date(y,m-1,d).getDay()===0; }
+
+// returns {present,absent,leave,holiday,workingDays,pct,status}
+function computeStudentStats(y,m,studentId,attMap){
+  const dim = daysInMonth(y,m);
+  const rec = attMap[studentId] || {};
+  let present=0,absent=0,leave=0,holiday=0;
+  for(let d=1; d<=dim; d++){
+    const sunday = isSunday(y,m,d);
+    const val = sunday ? 'H' : rec[d];
+    if(val==='H'){ holiday++; continue; }
+    if(val==='P') present++;
+    else if(val==='A') absent++;
+    else if(val==='L') leave++;
+    // blank = not yet marked -> excluded entirely
+  }
+  const workingDays = present+absent+leave;
+  const pct = workingDays>0 ? (present/workingDays*100) : 0;
+  return {present,absent,leave,holiday,workingDays,pct:Math.round(pct*10)/10,status:statusFor(pct,workingDays)};
+}
+function statusFor(pct, workingDays){
+  if(workingDays===0) return 'Not Marked';
+  if(pct>=95) return 'Excellent';
+  if(pct>=90) return 'Very Good';
+  if(pct>=80) return 'Good';
+  if(pct>=75) return 'Average';
+  if(pct>=60) return 'Needs Improvement';
+  return 'Critical';
+}
+function statusClass(status){ return 'status-'+status.replace(/\s+/g,''); }
+
+function timeToMinutes(t){ if(!t) return null; const [h,mi]=t.split(':').map(Number); return h*60+mi; }
+function isTeacherLate(timeStr, settings){
+  const t = timeToMinutes(timeStr);
+  if(t===null) return false;
+  const start = timeToMinutes(settings.instituteStartTime) || 0;
+  return t > (start + Number(settings.lateThresholdMinutes||15));
+}
+
+// returns {present,absent,leave,lateDays,convertedAbsences,effectivePresent,effectiveAbsent,workingDays,pct,status}
+function computeTeacherStats(y,m,teacherId,attMap,settings){
+  const dim = daysInMonth(y,m);
+  const rec = attMap[teacherId] || {};
+  let present=0,absent=0,leave=0,lateDays=0;
+  for(let d=1; d<=dim; d++){
+    if(isSunday(y,m,d)) continue; // institute holiday
+    const dayRec = rec[d];
+    if(!dayRec || !dayRec.status) continue; // not yet marked
+    if(dayRec.status==='P'){
+      present++;
+      if(isTeacherLate(dayRec.time, settings)) lateDays++;
+    } else if(dayRec.status==='A') absent++;
+    else if(dayRec.status==='L') leave++;
+  }
+  const latePerAbsent = Number(settings.latePerAbsent||5);
+  const convertedAbsences = latePerAbsent>0 ? Math.floor(lateDays/latePerAbsent) : 0;
+  const effectivePresent = Math.max(0, present-convertedAbsences);
+  const effectiveAbsent = absent+convertedAbsences;
+  const workingDays = present+absent+leave;
+  const pct = workingDays>0 ? (effectivePresent/workingDays*100) : 0;
+  return {present,absent,leave,lateDays,convertedAbsences,effectivePresent,effectiveAbsent,workingDays,
+    pct:Math.round(pct*10)/10, status:statusFor(pct,workingDays)};
+}
+
+/* ============================= NAV / ROUTING ============================= */
+function renderSidebar(){
+  const list = document.getElementById('classList');
+  list.innerHTML='';
+  DB.settings.classes.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='nav-item';
+    d.dataset.page='class';
+    d.dataset.classid=c.id;
+    d.textContent=c.name;
+    list.appendChild(d);
+  });
+  document.getElementById('brandName').innerHTML = DB.settings.instituteName+'<span id="brandSession">Session '+DB.settings.session+'</span>';
+  updateActiveNav();
+}
+function updateActiveNav(){
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.classList.remove('active');
+    if(CURRENT.page==='class' && el.dataset.page==='class' && el.dataset.classid===CURRENT.classId) el.classList.add('active');
+    else if(el.dataset.page===CURRENT.page && CURRENT.page!=='class') el.classList.add('active');
+  });
+}
+
+document.getElementById('sidebar').addEventListener('click', e=>{
+  const item = e.target.closest('.nav-item');
+  if(!item) return;
+  if(item.dataset.page==='class'){ CURRENT.page='class'; CURRENT.classId=item.dataset.classid; if(!CURRENT.ym) CURRENT.ym=todayYM(); renderClassPage(); }
+  else { CURRENT.page=item.dataset.page; route(); }
+  updateActiveNav();
+  closeSidebar();
+});
+function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
+function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+document.getElementById('hamburger').addEventListener('click', ()=>{
+  document.getElementById('sidebar').classList.contains('open') ? closeSidebar() : openSidebar();
+});
+document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+
+function route(){
+  const titles={dashboard:'Dashboard',teachers:'Teacher Attendance',absent:'Daily Absent Report',studentreport:'Student Attendance Report',settings:'Settings'};
+  document.getElementById('topTitle').textContent = titles[CURRENT.page] || 'Dashboard';
+  if(CURRENT.page==='dashboard') renderDashboard();
+  else if(CURRENT.page==='teachers') renderTeacherPage();
+  else if(CURRENT.page==='absent') renderAbsentReport();
+  else if(CURRENT.page==='studentreport') renderStudentReport();
+  else if(CURRENT.page==='settings') renderSettings();
+}
+
+/* ============================= SEARCH ============================= */
+let searchTimer=null;
+document.getElementById('searchInput').addEventListener('input', e=>{
+  clearTimeout(searchTimer);
+  const q=e.target.value.trim().toLowerCase();
+  const box=document.getElementById('searchResults');
+  if(!q){ box.style.display='none'; return; }
+  searchTimer=setTimeout(async ()=>{
+    const results=[];
+    for(const c of DB.settings.classes){
+      const students=await getStudents(c.id);
+      students.forEach(s=>{
+        if((s.name||'').toLowerCase().includes(q) || (s.roll||'').toLowerCase().includes(q) ||
+           (s.admission||'').toLowerCase().includes(q) || (s.contact||'').toLowerCase().includes(q) || (s.parentContact||'').toLowerCase().includes(q)){
+          results.push({...s, className:c.name, classId:c.id});
+        }
+      });
+    }
+    box.innerHTML = results.length ? results.slice(0,20).map(r=>
+      `<div class="res" data-classid="${r.classId}" data-sid="${r.id}"><b>${r.name}</b> — Roll ${r.roll} <small>${r.className} · ${r.contact||'no contact'}</small></div>`
+    ).join('') : '<div class="res small-muted">No students found</div>';
+    box.style.display='block';
+  },200);
+});
+document.getElementById('searchResults').addEventListener('click', e=>{
+  const res=e.target.closest('.res'); if(!res || !res.dataset.classid) return;
+  CURRENT.page='class'; CURRENT.classId=res.dataset.classid; CURRENT.ym=CURRENT.ym||todayYM();
+  document.getElementById('searchResults').style.display='none';
+  document.getElementById('searchInput').value='';
+  renderClassPage('students');
+  updateActiveNav();
+});
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#searchBox')) document.getElementById('searchResults').style.display='none';
+});
+
+/* ============================= DASHBOARD ============================= */
+let dashCharts=[];
+async function renderDashboard(){
+  const content=document.getElementById('content');
+  const dashDate = CURRENT.dashDate || todayDateStr();
+  const ym = CURRENT.ym || todayYM();
+  content.innerHTML = `
+  <div class="card">
+    <div class="toolbar">
+      <label>📅 Today's Snapshot — Date:</label><input type="date" id="dashDate" value="${dashDate}">
+      <span class="small-muted" style="margin-left:auto">Last updated: ${DB.settings.updatedAt ? new Date(DB.settings.updatedAt).toLocaleString() : '—'}</span>
+    </div>
+    <div id="dailyBody" class="empty">Loading…</div>
+  </div>
+  <div class="card">
+    <div class="toolbar">
+      <label>📊 Monthly Overview — Month:</label><input type="month" id="dashYm" value="${ym}">
+    </div>
+    <div id="monthlyBody" class="empty">Loading…</div>
+  </div>`;
+  document.getElementById('dashDate').addEventListener('change', e=>{ CURRENT.dashDate=e.target.value; renderDashboard(); });
+  document.getElementById('dashYm').addEventListener('change', e=>{ CURRENT.ym=e.target.value; renderDashboard(); });
+
+  await renderDailySnapshot(dashDate);
+  await renderMonthlyOverview(ym);
+}
+
+async function renderDailySnapshot(dateStr){
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const ym = y+'-'+String(m).padStart(2,'0');
+  let totalRoster=0, dp=0, da=0, dl=0, notMarked=0;
+  const classDay=[];
+  for(const c of DB.settings.classes){
+    const students = await getStudents(c.id);
+    const att = await getAttendance(c.id, ym);
+    totalRoster += students.length;
+    let cp=0,ca=0,cl=0;
+    students.forEach(s=>{
+      const val = isSunday(y,m,d) ? 'H' : (att[s.id]||{})[d];
+      if(val==='P'){ cp++; } else if(val==='A'){ ca++; } else if(val==='L'){ cl++; }
+      else if(val!=='H'){ notMarked++; }
+    });
+    dp+=cp; da+=ca; dl+=cl;
+    const marked=cp+ca+cl;
+    if(marked>0) classDay.push({name:c.name, pct: Math.round(cp/marked*1000)/10});
+  }
+  const marked = dp+da+dl;
+  const overallPct = marked>0 ? Math.round(dp/marked*1000)/10 : 0;
+  const ranked = [...classDay].sort((a,b)=>b.pct-a.pct);
+  const best = ranked[0], worst = ranked[ranked.length-1];
+  const isSun = isSunday(y,m,d);
+
+  document.getElementById('dailyBody').innerHTML = isSun ? `<div class="empty">📌 ${dateStr} is a Sunday — institute-wide holiday.</div>` : `
+  <div class="kpi-grid">
+    <div class="kpi"><div class="v">${overallPct}%</div><div class="l">Attendance % on ${dateStr}</div></div>
+    <div class="kpi"><div class="v">${totalRoster}</div><div class="l">Total Students (roster)</div></div>
+    <div class="kpi green"><div class="v">${dp}</div><div class="l">Present Today</div></div>
+    <div class="kpi red"><div class="v">${da}</div><div class="l">Absent Today</div></div>
+    <div class="kpi yellow"><div class="v">${dl}</div><div class="l">Leave Today</div></div>
+    <div class="kpi"><div class="v">${notMarked}</div><div class="l">Not Yet Marked</div></div>
+    <div class="kpi green"><div class="v">${best? best.name:'—'}</div><div class="l">Best Class Today ${best?('('+best.pct+'%)'):''}</div></div>
+    <div class="kpi red"><div class="v">${worst? worst.name:'—'}</div><div class="l">Lowest Class Today ${worst?('('+worst.pct+'%)'):''}</div></div>
+  </div>`;
+}
+
+async function renderMonthlyOverview(ym){
+  const [y,m] = ym.split('-').map(Number);
+  let totalStudents=0, totalP=0,totalA=0,totalL=0;
+  const classStats=[]; const allStudentRows=[];
+  for(const c of DB.settings.classes){
+    const students = await getStudents(c.id);
+    const att = await getAttendance(c.id, ym);
+    let cP=0,cA=0,cL=0,pctSum=0,cnt=0;
+    students.forEach(s=>{
+      const st = computeStudentStats(y,m,s.id,att);
+      if(st.workingDays>0){ cP+=st.present; cA+=st.absent; cL+=st.leave; pctSum+=st.pct; cnt++; allStudentRows.push({name:s.name,roll:s.roll,className:c.name,pct:st.pct,status:st.status}); }
+    });
+    totalStudents += students.length; totalP+=cP; totalA+=cA; totalL+=cL;
+    classStats.push({name:c.name, avgPct: cnt? Math.round(pctSum/cnt*10)/10 : 0, students:students.length, marked:cnt});
+  }
+  const overallPct = (totalP+totalA+totalL)>0 ? Math.round(totalP/(totalP+totalA+totalL)*1000)/10 : 0;
+  const below75 = allStudentRows.filter(r=>r.pct<75).length;
+  const rankedClasses = classStats.filter(c=>c.marked>0).sort((a,b)=>b.avgPct-a.avgPct);
+  const best = rankedClasses[0]; const worst = rankedClasses[rankedClasses.length-1];
+  const topStudents = [...allStudentRows].sort((a,b)=>b.pct-a.pct).slice(0,10);
+  const bottomStudents = [...allStudentRows].sort((a,b)=>a.pct-b.pct).slice(0,10);
+
+  // daily trend
+  const dim = daysInMonth(y,m);
+  const dailyLabels=[]; const dailyPct=[];
+  for(let d=1; d<=dim; d++){
+    if(isSunday(y,m,d)){ continue; }
+    let dp=0,da=0,dl=0;
+    for(const c of DB.settings.classes){
+      const att = await getAttendance(c.id, ym);
+      Object.values(att).forEach(rec=>{
+        const v = rec[d];
+        if(v==='P') dp++; else if(v==='A') da++; else if(v==='L') dl++;
+      });
+    }
+    const denom=dp+da+dl;
+    dailyLabels.push(d);
+    dailyPct.push(denom>0? Math.round(dp/denom*1000)/10 : null);
+  }
+
+  const body = document.getElementById('monthlyBody');
+  body.innerHTML = `
+  <div class="kpi-grid">
+    <div class="kpi"><div class="v">${overallPct}%</div><div class="l">Overall Attendance This Month</div></div>
+    <div class="kpi"><div class="v">${totalStudents}</div><div class="l">Total Students</div></div>
+    <div class="kpi green"><div class="v">${totalP}</div><div class="l">Total Presents (month)</div></div>
+    <div class="kpi red"><div class="v">${totalA}</div><div class="l">Total Absents (month)</div></div>
+    <div class="kpi yellow"><div class="v">${totalL}</div><div class="l">Total Leaves (month)</div></div>
+    <div class="kpi red"><div class="v">${below75}</div><div class="l">Students Below 75%</div></div>
+    <div class="kpi green"><div class="v">${best? best.name : '—'}</div><div class="l">Best Performing Class ${best?('('+best.avgPct+'%)'):''}</div></div>
+    <div class="kpi red"><div class="v">${worst? worst.name : '—'}</div><div class="l">Lowest Performing Class ${worst?('('+worst.avgPct+'%)'):''}</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>Attendance % by Class</h3><canvas id="chartClass"></canvas></div>
+    <div class="card"><h3>Present / Absent / Leave Split</h3><canvas id="chartPie"></canvas></div>
+  </div>
+  <div class="card"><h3>Daily Attendance Trend (% present, Sundays excluded)</h3><canvas id="chartTrend" height="80"></canvas></div>
+  <div class="grid2">
+    <div class="card"><h3>🏆 Top 10 Students by Attendance</h3>${studentMiniTable(topStudents)}</div>
+    <div class="card"><h3>⚠️ Bottom 10 Students by Attendance</h3>${studentMiniTable(bottomStudents)}</div>
+  </div>
+  `;
+
+  dashCharts.forEach(c=>c.destroy()); dashCharts=[];
+  dashCharts.push(new Chart(document.getElementById('chartClass'), {
+    type:'bar',
+    data:{ labels: classStats.map(c=>c.name), datasets:[{label:'Attendance %', data: classStats.map(c=>c.avgPct), backgroundColor:'#38BDF8'}] },
+    options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,max:100}} }
+  }));
+  dashCharts.push(new Chart(document.getElementById('chartPie'), {
+    type:'doughnut',
+    data:{ labels:['Present','Absent','Leave'], datasets:[{data:[totalP,totalA,totalL], backgroundColor:['#22C55E','#EF4444','#FACC15']}] }
+  }));
+  dashCharts.push(new Chart(document.getElementById('chartTrend'), {
+    type:'line',
+    data:{ labels: dailyLabels, datasets:[{label:'Daily Attendance %', data: dailyPct, borderColor:'#0B2545', backgroundColor:'#38BDF833', fill:true, spanGaps:true, tension:.25}] },
+    options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,max:100}} }
+  }));
+}
+function studentMiniTable(rows){
+  if(!rows.length) return '<div class="empty">No marked attendance yet this month</div>';
+  return `<div class="tablewrap"><table><tr><th>Name</th><th>Roll</th><th>Class</th><th>%</th><th>Status</th></tr>
+  ${rows.map(r=>`<tr><td>${r.name}</td><td>${r.roll}</td><td>${r.className}</td><td>${r.pct}%</td><td><span class="status-badge ${statusClass(r.status)}">${r.status}</span></td></tr>`).join('')}
+  </table></div>`;
+}
+
+/* ============================= CLASS PAGE (Students + Attendance) ============================= */
+async function renderClassPage(tab){
+  tab = tab || 'attendance';
+  const cls = DB.settings.classes.find(c=>c.id===CURRENT.classId);
+  document.getElementById('topTitle').textContent = 'Class: '+cls.name;
+  const content = document.getElementById('content');
+  content.innerHTML = `
+  <div class="toolbar no-print">
+    <button class="btn ghost sm tabbtn" data-tab="attendance">📅 Attendance</button>
+    <button class="btn ghost sm tabbtn" data-tab="students">🧑‍🎓 Students & Class Info</button>
+  </div>
+  <div id="classBody"></div>`;
+  content.querySelectorAll('.tabbtn').forEach(b=>{
+    b.classList.toggle('sky', b.dataset.tab===tab); 
+    b.addEventListener('click', ()=>renderClassPage(b.dataset.tab));
+  });
+  if(tab==='attendance') renderAttendanceTab(cls);
+  else renderStudentsTab(cls);
+}
+
+async function renderStudentsTab(cls){
+  const students = await getStudents(cls.id);
+  const ym = CURRENT.ym || todayYM();
+  const fees = await getFees(cls.id, ym);
+  const paidCount = students.filter(s=>fees[s.id]==='Paid').length;
+  const unpaidCount = students.length - paidCount;
+  const body = document.getElementById('classBody');
+  body.innerHTML = `
+  <div class="card">
+    <h3>Class Information</h3>
+    <div class="toolbar">
+      <label>Teacher Name</label><input id="teacherName" value="${cls.teacher||''}" placeholder="Teacher name">
+      <label>Teacher Contact</label><input id="teacherContact" value="${cls.contact||''}" placeholder="03xx-xxxxxxx">
+      <button class="btn sm" id="saveClassInfo">Save</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="toolbar">
+      <h3 style="margin:0">Students (${students.length})</h3>
+      <span class="pill" style="margin-left:auto">Fee Month: ${MONTH_NAMES[Number(ym.split('-')[1])-1]} ${ym.split('-')[0]}</span>
+      <span class="pill" style="background:var(--green-soft);color:#166534">Paid: ${paidCount}</span>
+      <span class="pill" style="background:var(--red-soft);color:#991b1b">Unpaid: ${unpaidCount}</span>
+    </div>
+    <div class="tablewrap"><table id="studentsTable">
+      <tr><th>Roll No</th><th>Name</th><th>Father Name</th><th>Contact</th><th>Parent Contact</th><th>Admission No</th><th>Gender</th><th>Fee (this month)</th><th class="no-print">Action</th></tr>
+      ${students.map(s=>studentRow(s,fees)).join('')}
+      <tr class="no-print"><td colspan="9"><button class="btn sm sky" id="addStudentBtn">+ Add Student</button></td></tr>
+    </table></div>
+  </div>`;
+  document.getElementById('saveClassInfo').addEventListener('click', async ()=>{
+    cls.teacher=document.getElementById('teacherName').value;
+    cls.contact=document.getElementById('teacherContact').value;
+    await stSet('settings', DB.settings);
+  });
+  document.getElementById('addStudentBtn').addEventListener('click', async ()=>{
+    const id='s'+Date.now();
+    students.push({id, roll:String(students.length+1), name:'New Student', father:'', contact:'', parentContact:'', admission:'', gender:''});
+    await saveStudents(cls.id, students);
+    renderStudentsTab(cls);
+  });
+  body.querySelectorAll('.del-student').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('Delete this student?')) return;
+      const idx = students.findIndex(s=>s.id===btn.dataset.id);
+      students.splice(idx,1);
+      await saveStudents(cls.id, students);
+      renderStudentsTab(cls);
+    });
+  });
+  body.querySelectorAll('.stu-field').forEach(inp=>{
+    inp.addEventListener('change', async ()=>{
+      const s = students.find(s=>s.id===inp.dataset.id);
+      s[inp.dataset.field] = inp.value;
+      await saveStudents(cls.id, students);
+    });
+  });
+  body.querySelectorAll('.fee-select').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      fees[sel.dataset.id] = sel.value;
+      await saveFees(cls.id, ym, fees);
+      renderStudentsTab(cls);
+    });
+  });
+}
+function studentRow(s, fees){
+  fees = fees || {};
+  const feeVal = fees[s.id] || 'Unpaid';
+  return `<tr>
+    <td><input class="stu-field" data-id="${s.id}" data-field="roll" value="${s.roll||''}" style="width:60px"></td>
+    <td><input class="stu-field" data-id="${s.id}" data-field="name" value="${s.name||''}" style="width:150px"></td>
+    <td><input class="stu-field" data-id="${s.id}" data-field="father" value="${s.father||''}" style="width:140px"></td>
+    <td><input class="stu-field" data-id="${s.id}" data-field="contact" value="${s.contact||''}" style="width:120px"></td>
+    <td><input class="stu-field" data-id="${s.id}" data-field="parentContact" value="${s.parentContact||''}" style="width:120px"></td>
+    <td><input class="stu-field" data-id="${s.id}" data-field="admission" value="${s.admission||''}" style="width:100px"></td>
+    <td><select class="stu-field" data-id="${s.id}" data-field="gender"><option ${s.gender==='' ?'selected':''}></option><option ${s.gender==='M'?'selected':''}>M</option><option ${s.gender==='F'?'selected':''}>F</option></select></td>
+    <td><select class="fee-select ${feeVal}" data-id="${s.id}"><option value="Unpaid" ${feeVal==='Unpaid'?'selected':''}>Unpaid</option><option value="Paid" ${feeVal==='Paid'?'selected':''}>Paid</option></select></td>
+    <td class="no-print"><button class="btn danger sm del-student" data-id="${s.id}">Delete</button></td>
+  </tr>`;
+}
+
+async function renderAttendanceTab(cls){
+  const ym = CURRENT.ym || todayYM();
+  const [y,m] = ym.split('-').map(Number);
+  const dim = daysInMonth(y,m);
+  const students = await getStudents(cls.id);
+  const att = await getAttendance(cls.id, ym);
+  const fees = await getFees(cls.id, ym);
+  const paidCount = students.filter(s=>fees[s.id]==='Paid').length;
+  const unpaidCount = students.length - paidCount;
+  const body = document.getElementById('classBody');
+
+  let dayHeaders=''; for(let d=1; d<=dim; d++){ dayHeaders += `<th>${d}${isSunday(y,m,d)?' <br><small>Sun</small>':''}</th>`; }
+
+  let rows='';
+  students.forEach(s=>{
+    const rec = att[s.id] || {};
+    let cells='';
+    for(let d=1; d<=dim; d++){
+      const sunday = isSunday(y,m,d);
+      const val = sunday ? 'H' : (rec[d]||'');
+      cells += `<td><select class="att-select ${val} ${sunday?'sun':''}" data-sid="${s.id}" data-day="${d}" ${sunday?'disabled':''}>
+        <option value="" ${val===''?'selected':''}></option>
+        <option value="P" ${val==='P'?'selected':''}>P</option>
+        <option value="A" ${val==='A'?'selected':''}>A</option>
+        <option value="L" ${val==='L'?'selected':''}>L</option>
+        <option value="H" ${val==='H'?'selected':''}>H</option>
+      </select></td>`;
+    }
+    const st = computeStudentStats(y,m,s.id,att);
+    rows += `<tr><td>${s.roll}</td><td style="text-align:left">${s.name}</td>${cells}
+      <td>${st.present}</td><td>${st.absent}</td><td>${st.leave}</td><td>${st.holiday}</td><td>${st.workingDays}</td>
+      <td><b>${st.pct}%</b></td><td><span class="status-badge ${statusClass(st.status)}">${st.status}</span></td></tr>`;
+  });
+
+  // monthly summary
+  const statsList = students.map(s=>computeStudentStats(y,m,s.id,att)).filter(x=>x.workingDays>0);
+  const avg = arr => arr.length? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length*10)/10 : 0;
+  const avgPct = avg(statsList.map(x=>x.pct));
+  const avgPresentPct = avg(statsList.map(x=> x.workingDays? x.present/x.workingDays*100:0));
+  const avgAbsentPct = avg(statsList.map(x=> x.workingDays? x.absent/x.workingDays*100:0));
+  const avgLeavePct = avg(statsList.map(x=> x.workingDays? x.leave/x.workingDays*100:0));
+  const highest = statsList.length? Math.max(...statsList.map(x=>x.pct)) : 0;
+  const lowest = statsList.length? Math.min(...statsList.map(x=>x.pct)) : 0;
+  const below75 = statsList.filter(x=>x.pct<75).length;
+  const above90 = statsList.filter(x=>x.pct>=90).length;
+  let sundays=0; for(let d=1;d<=dim;d++) if(isSunday(y,m,d)) sundays++;
+
+  body.innerHTML = `
+  <div class="card no-print">
+    <div class="toolbar">
+      <label>Month</label><input type="month" id="attYm" value="${ym}">
+      <span class="pill">${cls.teacher? 'Teacher: '+cls.teacher : 'No teacher assigned'}</span>
+      <span class="pill">${cls.contact||'No contact'}</span>
+      <span class="pill">Working Days: ${dim-sundays}</span>
+      <span class="pill">Sundays: ${sundays}</span>
+      <span class="pill">Students: ${students.length}</span>
+      <span class="pill" style="background:var(--green-soft);color:#166534">Paid: ${paidCount}</span>
+      <span class="pill" style="background:var(--red-soft);color:#991b1b">Unpaid: ${unpaidCount}</span>
+      <button class="btn sm ghost" style="margin-left:auto" onclick="window.print()">🖨 Print Register</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>${DB.settings.instituteName} — ${cls.name} — ${MONTH_NAMES[m-1]} ${y} — Session ${DB.settings.session}</h3>
+    <div class="tablewrap" style="max-height:520px;overflow:auto;">
+    <table>
+      <tr><th>Roll</th><th>Name</th>${dayHeaders}<th>P</th><th>A</th><th>L</th><th>H</th><th>Working</th><th>%</th><th>Status</th></tr>
+      ${rows || `<tr><td colspan="${dim+9}" class="empty">No students yet. Add students from the "Students & Class Info" tab.</td></tr>`}
+    </table>
+    </div>
+  </div>
+  <div class="card">
+    <h3>📋 Monthly Summary Panel — ${MONTH_NAMES[m-1]} ${y}</h3>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="v">${students.length}</div><div class="l">Total Students</div></div>
+      <div class="kpi"><div class="v">${avgPct}%</div><div class="l">Average Attendance %</div></div>
+      <div class="kpi green"><div class="v">${Math.round(avgPresentPct*10)/10}%</div><div class="l">Average Present %</div></div>
+      <div class="kpi red"><div class="v">${Math.round(avgAbsentPct*10)/10}%</div><div class="l">Average Absent %</div></div>
+      <div class="kpi yellow"><div class="v">${Math.round(avgLeavePct*10)/10}%</div><div class="l">Average Leave %</div></div>
+      <div class="kpi green"><div class="v">${highest}%</div><div class="l">Highest Attendance %</div></div>
+      <div class="kpi red"><div class="v">${lowest}%</div><div class="l">Lowest Attendance %</div></div>
+      <div class="kpi red"><div class="v">${below75}</div><div class="l">Students Below 75%</div></div>
+      <div class="kpi green"><div class="v">${above90}</div><div class="l">Students Above 90%</div></div>
+    </div>
+  </div>`;
+
+  document.getElementById('attYm').addEventListener('change', e=>{ CURRENT.ym=e.target.value; renderAttendanceTab(cls); });
+  body.querySelectorAll('.att-select:not(.sun)').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const sid=sel.dataset.sid, day=sel.dataset.day, val=sel.value;
+      if(!att[sid]) att[sid]={};
+      if(val) att[sid][day]=val; else delete att[sid][day];
+      await saveAttendance(cls.id, ym, att);
+      renderAttendanceTab(cls);
+    });
+  });
+}
+
+/* ============================= TEACHER ATTENDANCE ============================= */
+async function renderTeacherPage(tab){
+  tab = tab || 'attendance';
+  const content = document.getElementById('content');
+  content.innerHTML = `
+  <div class="toolbar no-print">
+    <button class="btn ghost sm teachtabbtn" data-tab="attendance">📅 Attendance</button>
+    <button class="btn ghost sm teachtabbtn" data-tab="roster">👩‍🏫 Teacher Roster</button>
+  </div>
+  <div id="teacherBody"></div>`;
+  content.querySelectorAll('.teachtabbtn').forEach(b=>{
+    b.classList.toggle('sky', b.dataset.tab===tab);
+    b.addEventListener('click', ()=>renderTeacherPage(b.dataset.tab));
+  });
+  if(tab==='attendance') renderTeacherAttendanceTab();
+  else renderTeacherRosterTab();
+}
+
+async function renderTeacherRosterTab(){
+  const teachers = await getTeachers();
+  const body = document.getElementById('teacherBody');
+  body.innerHTML = `
+  <div class="card">
+    <h3>Teachers (${teachers.length})</h3>
+    <div class="tablewrap"><table>
+      <tr><th>Name</th><th>Subject / Class</th><th>Contact</th><th class="no-print">Action</th></tr>
+      ${teachers.map(t=>`<tr>
+        <td><input class="teach-field" data-id="${t.id}" data-field="name" value="${t.name||''}" style="width:170px"></td>
+        <td><input class="teach-field" data-id="${t.id}" data-field="subject" value="${t.subject||''}" style="width:170px"></td>
+        <td><input class="teach-field" data-id="${t.id}" data-field="contact" value="${t.contact||''}" style="width:140px"></td>
+        <td class="no-print"><button class="btn danger sm del-teacher" data-id="${t.id}">Delete</button></td>
+      </tr>`).join('')}
+      <tr class="no-print"><td colspan="4"><button class="btn sm sky" id="addTeacherBtn">+ Add Teacher</button></td></tr>
+    </table></div>
+  </div>
+  <div class="card">
+    <h3>⚙️ Lateness Rules</h3>
+    <div class="toolbar">
+      <label>Institute Start Time</label><input type="time" id="setStartTime" value="${DB.settings.instituteStartTime}">
+      <label>Late Threshold (minutes)</label><input type="number" min="0" id="setLateThreshold" value="${DB.settings.lateThresholdMinutes}" style="width:70px">
+      <label>Every</label><input type="number" min="1" id="setLatePerAbsent" value="${DB.settings.latePerAbsent}" style="width:60px"><label>lates = 1 Absent</label>
+      <button class="btn sm" id="saveLateRules">Save</button>
+    </div>
+    <p class="small-muted">Example: if start time is ${DB.settings.instituteStartTime} and threshold is ${DB.settings.lateThresholdMinutes} minutes, a teacher marked Present with a time-in after ${addMinutesToTime(DB.settings.instituteStartTime, DB.settings.lateThresholdMinutes)} is auto-flagged Late. Every ${DB.settings.latePerAbsent} late arrivals convert into 1 counted absence.</p>
+  </div>`;
+  document.getElementById('addTeacherBtn').addEventListener('click', async ()=>{
+    teachers.push({id:'t'+Date.now(), name:'New Teacher', subject:'', contact:''});
+    await saveTeachers(teachers);
+    renderTeacherRosterTab();
+  });
+  body.querySelectorAll('.del-teacher').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('Delete this teacher?')) return;
+      const idx = teachers.findIndex(t=>t.id===btn.dataset.id);
+      teachers.splice(idx,1);
+      await saveTeachers(teachers);
+      renderTeacherRosterTab();
+    });
+  });
+  body.querySelectorAll('.teach-field').forEach(inp=>{
+    inp.addEventListener('change', async ()=>{
+      const t = teachers.find(t=>t.id===inp.dataset.id);
+      t[inp.dataset.field]=inp.value;
+      await saveTeachers(teachers);
+    });
+  });
+  document.getElementById('saveLateRules').addEventListener('click', async ()=>{
+    DB.settings.instituteStartTime = document.getElementById('setStartTime').value || '08:00';
+    DB.settings.lateThresholdMinutes = Number(document.getElementById('setLateThreshold').value)||0;
+    DB.settings.latePerAbsent = Number(document.getElementById('setLatePerAbsent').value)||1;
+    await stSet('settings', DB.settings);
+    renderTeacherRosterTab();
+  });
+}
+function addMinutesToTime(t,mins){
+  const total = timeToMinutes(t)+Number(mins||0);
+  const h = Math.floor(total/60)%24, mi = total%60;
+  return String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0');
+}
+
+async function renderTeacherAttendanceTab(){
+  const ym = CURRENT.ym || todayYM();
+  const [y,m] = ym.split('-').map(Number);
+  const dim = daysInMonth(y,m);
+  const teachers = await getTeachers();
+  const att = await getTeacherAttendance(ym);
+  const body = document.getElementById('teacherBody');
+
+  let dayHeaders=''; for(let d=1; d<=dim; d++){ dayHeaders += `<th>${d}${isSunday(y,m,d)?' <br><small>Sun</small>':''}</th>`; }
+
+  let rows='';
+  teachers.forEach(t=>{
+    const rec = att[t.id] || {};
+    let cells='';
+    for(let d=1; d<=dim; d++){
+      const sunday = isSunday(y,m,d);
+      if(sunday){ cells += `<td><div class="teach-cell"><select class="att-select H sun" disabled><option selected>H</option></select></div></td>`; continue; }
+      const dayRec = rec[d] || {status:'', time:''};
+      const late = dayRec.status==='P' && isTeacherLate(dayRec.time, DB.settings);
+      cells += `<td><div class="teach-cell">
+        <select class="att-select ${dayRec.status||''} teach-status" data-tid="${t.id}" data-day="${d}">
+          <option value="" ${dayRec.status===''?'selected':''}></option>
+          <option value="P" ${dayRec.status==='P'?'selected':''}>P</option>
+          <option value="A" ${dayRec.status==='A'?'selected':''}>A</option>
+          <option value="L" ${dayRec.status==='L'?'selected':''}>L</option>
+        </select>
+        <input type="time" class="teach-time" data-tid="${t.id}" data-day="${d}" value="${dayRec.time||''}" ${dayRec.status==='P'?'':'style="visibility:hidden"'}>
+        ${late? '<span class="late-badge">LATE</span>' : ''}
+      </div></td>`;
+    }
+    const st = computeTeacherStats(y,m,t.id,att,DB.settings);
+    rows += `<tr><td style="text-align:left">${t.name}${t.subject? ' <br><small class="small-muted">'+t.subject+'</small>':''}</td>${cells}
+      <td>${st.present}</td><td>${st.absent}</td><td>${st.leave}</td><td>${st.lateDays}</td><td>${st.convertedAbsences}</td><td>${st.effectiveAbsent}</td><td>${st.workingDays}</td>
+      <td><b>${st.pct}%</b></td><td><span class="status-badge ${statusClass(st.status)}">${st.status}</span></td></tr>`;
+  });
+
+  // teacher monthly summary
+  const statsList = teachers.map(t=>computeTeacherStats(y,m,t.id,att,DB.settings)).filter(x=>x.workingDays>0);
+  const avg = arr => arr.length? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length*10)/10 : 0;
+  const avgPct = avg(statsList.map(x=>x.pct));
+  const totalLate = statsList.reduce((a,x)=>a+x.lateDays,0);
+  const totalConverted = statsList.reduce((a,x)=>a+x.convertedAbsences,0);
+  const ranked = [...statsList].map((x,i)=>({...x, name:teachers.filter(t=>computeTeacherStats(y,m,t.id,att,DB.settings).workingDays>0)[i]?.name})).sort((a,b)=>b.pct-a.pct);
+  const mostPunctual = [...teachers].map(t=>({name:t.name, late:computeTeacherStats(y,m,t.id,att,DB.settings).lateDays, working:computeTeacherStats(y,m,t.id,att,DB.settings).workingDays})).filter(x=>x.working>0).sort((a,b)=>a.late-b.late)[0];
+  const mostLate = [...teachers].map(t=>({name:t.name, late:computeTeacherStats(y,m,t.id,att,DB.settings).lateDays})).sort((a,b)=>b.late-a.late)[0];
+  const below75 = statsList.filter(x=>x.pct<75).length;
+
+  body.innerHTML = `
+  <div class="card no-print">
+    <div class="toolbar">
+      <label>Month</label><input type="month" id="teachYm" value="${ym}">
+      <span class="pill">Start Time: ${DB.settings.instituteStartTime}</span>
+      <span class="pill">Late Threshold: ${DB.settings.lateThresholdMinutes} min</span>
+      <span class="pill">${DB.settings.latePerAbsent} Late = 1 Absent</span>
+      <span class="pill">Teachers: ${teachers.length}</span>
+      <button class="btn sm ghost" style="margin-left:auto" onclick="window.print()">🖨 Print</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>${DB.settings.instituteName} — Teacher Attendance — ${MONTH_NAMES[m-1]} ${y}</h3>
+    <div class="tablewrap" style="max-height:520px;overflow:auto;">
+    <table>
+      <tr><th>Teacher</th>${dayHeaders}<th>P</th><th>A</th><th>L</th><th>Late</th><th>Conv. Abs</th><th>Eff. Absent</th><th>Working</th><th>%</th><th>Status</th></tr>
+      ${rows || `<tr><td colspan="${dim+10}" class="empty">No teachers yet. Add teachers from the "Teacher Roster" tab.</td></tr>`}
+    </table>
+    </div>
+  </div>
+  <div class="card">
+    <h3>📋 Teacher Monthly Summary — ${MONTH_NAMES[m-1]} ${y}</h3>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="v">${teachers.length}</div><div class="l">Total Teachers</div></div>
+      <div class="kpi"><div class="v">${avgPct}%</div><div class="l">Average Attendance %</div></div>
+      <div class="kpi yellow"><div class="v">${totalLate}</div><div class="l">Total Late Arrivals</div></div>
+      <div class="kpi red"><div class="v">${totalConverted}</div><div class="l">Absences from Lateness</div></div>
+      <div class="kpi red"><div class="v">${below75}</div><div class="l">Teachers Below 75%</div></div>
+      <div class="kpi green"><div class="v">${mostPunctual? mostPunctual.name:'—'}</div><div class="l">Most Punctual Teacher</div></div>
+      <div class="kpi red"><div class="v">${mostLate && mostLate.late>0 ? mostLate.name:'—'}</div><div class="l">Most Late Teacher ${mostLate&&mostLate.late>0?('('+mostLate.late+')'):''}</div></div>
+    </div>
+  </div>`;
+
+  document.getElementById('teachYm').addEventListener('change', e=>{ CURRENT.ym=e.target.value; renderTeacherAttendanceTab(); });
+  body.querySelectorAll('.teach-status').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const tid=sel.dataset.tid, day=sel.dataset.day, val=sel.value;
+      if(!att[tid]) att[tid]={};
+      if(!att[tid][day]) att[tid][day]={status:'',time:''};
+      att[tid][day].status = val;
+      if(val!=='P') att[tid][day].time='';
+      await saveTeacherAttendance(ym, att);
+      renderTeacherAttendanceTab();
+    });
+  });
+  body.querySelectorAll('.teach-time').forEach(inp=>{
+    inp.addEventListener('change', async ()=>{
+      const tid=inp.dataset.tid, day=inp.dataset.day;
+      if(!att[tid]) att[tid]={};
+      if(!att[tid][day]) att[tid][day]={status:'P',time:''};
+      att[tid][day].time = inp.value;
+      await saveTeacherAttendance(ym, att);
+      renderTeacherAttendanceTab();
+    });
+  });
+}
+
+/* ============================= DAILY ABSENT REPORT ============================= */
+async function renderAbsentReport(){
+  const content=document.getElementById('content');
+  const dateStr = CURRENT.absentDate || todayDateStr();
+  content.innerHTML = `<div class="toolbar no-print"><label>Select Date</label><input type="date" id="absentDate" value="${dateStr}"></div>
+  <div id="absentBody" class="empty">Loading…</div>`;
+  document.getElementById('absentDate').addEventListener('change', e=>{ CURRENT.absentDate=e.target.value; renderAbsentReport(); });
+
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const ym = y+'-'+String(m).padStart(2,'0');
+  const meta = await getAbsentMeta(dateStr);
+  let rows=[];
+  for(const c of DB.settings.classes){
+    const students = await getStudents(c.id);
+    const att = await getAttendance(c.id, ym);
+    students.forEach(s=>{
+      const val = isSunday(y,m,d) ? 'H' : (att[s.id]||{})[d];
+      if(val==='A'){
+        const key = c.id+'|'+s.id;
+        const mm = meta[key] || {callStatus:'Pending',callTime:'',reason:'',remarks:'',followUp:'No'};
+        rows.push({classId:c.id,className:c.name,student:s,mm,key});
+      }
+    });
+  }
+  const body=document.getElementById('absentBody');
+  body.innerHTML = rows.length ? `<div class="card">
+  <h3>Absent Students on ${dateStr} (${rows.length})</h3>
+  <div class="tablewrap"><table>
+  <tr><th>Class</th><th>Roll</th><th>Name</th><th>Parent Contact</th><th>Teacher</th><th>Call Status</th><th>Call Time</th><th>Reason</th><th>Remarks</th><th>Follow-up</th></tr>
+  ${rows.map(r=>`<tr>
+    <td>${r.className}</td><td>${r.student.roll}</td><td>${r.student.name}</td><td>${r.student.parentContact||'—'}</td>
+    <td>${DB.settings.classes.find(c=>c.id===r.classId).teacher||'—'}</td>
+    <td><select class="meta-field" data-key="${r.key}" data-field="callStatus">
+      ${['Pending','Called - Answered','Called - No Answer','Not Required'].map(o=>`<option ${r.mm.callStatus===o?'selected':''}>${o}</option>`).join('')}
+    </select></td>
+    <td><input type="time" class="meta-field" data-key="${r.key}" data-field="callTime" value="${r.mm.callTime}" style="width:100px"></td>
+    <td><input class="meta-field" data-key="${r.key}" data-field="reason" value="${r.mm.reason}" style="width:140px" placeholder="Reason"></td>
+    <td><input class="meta-field" data-key="${r.key}" data-field="remarks" value="${r.mm.remarks}" style="width:140px" placeholder="Remarks"></td>
+    <td><select class="meta-field" data-key="${r.key}" data-field="followUp"><option ${r.mm.followUp==='No'?'selected':''}>No</option><option ${r.mm.followUp==='Yes'?'selected':''}>Yes</option></select></td>
+  </tr>`).join('')}
+  </table></div></div>` : `<div class="card"><div class="empty">🎉 No absentees recorded for ${dateStr}.</div></div>`;
+
+  body.querySelectorAll('.meta-field').forEach(el=>{
+    el.addEventListener('change', async ()=>{
+      const key=el.dataset.key;
+      if(!meta[key]) meta[key]={callStatus:'Pending',callTime:'',reason:'',remarks:'',followUp:'No'};
+      meta[key][el.dataset.field]=el.value;
+      await saveAbsentMeta(dateStr, meta);
+    });
+  });
+}
+
+/* ============================= STUDENT ATTENDANCE REPORT ============================= */
+async function renderStudentReport(){
+  const content=document.getElementById('content');
+  const ym = CURRENT.ym || todayYM();
+  content.innerHTML = `
+  <div class="toolbar no-print">
+    <label>Class</label><select id="repClass"><option value="">All Classes</option>${DB.settings.classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+    <label>Student</label><select id="repStudent"><option value="">All Students</option></select>
+    <label>Month</label><input type="month" id="repYm" value="${ym}">
+  </div>
+  <div id="repBody" class="empty">Select filters above.</div>`;
+
+  const classSel=document.getElementById('repClass'), stuSel=document.getElementById('repStudent'), ymSel=document.getElementById('repYm');
+  async function refreshStudentDropdown(){
+    stuSel.innerHTML='<option value="">All Students</option>';
+    if(classSel.value){
+      const students = await getStudents(classSel.value);
+      students.forEach(s=> stuSel.innerHTML += `<option value="${s.id}">${s.name} (Roll ${s.roll})</option>`);
+    }
+  }
+  classSel.addEventListener('change', async ()=>{ await refreshStudentDropdown(); runReport(); });
+  stuSel.addEventListener('change', runReport);
+  ymSel.addEventListener('change', ()=>{ CURRENT.ym=ymSel.value; runReport(); });
+
+  async function runReport(){
+    const ym = ymSel.value; const [y,m]=ym.split('-').map(Number);
+    let classesToShow = classSel.value ? [DB.settings.classes.find(c=>c.id===classSel.value)] : DB.settings.classes;
+    let rows=[];
+    for(const c of classesToShow){
+      const students = await getStudents(c.id);
+      const att = await getAttendance(c.id, ym);
+      const filtered = stuSel.value ? students.filter(s=>s.id===stuSel.value) : students;
+      filtered.forEach(s=>{
+        const st = computeStudentStats(y,m,s.id,att);
+        rows.push({name:s.name, className:c.name, roll:s.roll, ...st});
+      });
+    }
+    const body=document.getElementById('repBody');
+    body.innerHTML = rows.length ? `<div class="card"><div class="tablewrap"><table>
+    <tr><th>Student</th><th>Class</th><th>Roll</th><th>Month</th><th>Working Days</th><th>Present</th><th>Absent</th><th>Leave</th><th>Holiday</th><th>%</th><th>Status</th></tr>
+    ${rows.map(r=>`<tr><td>${r.name}</td><td>${r.className}</td><td>${r.roll}</td><td>${MONTH_NAMES[m-1]} ${y}</td>
+    <td>${r.workingDays}</td><td>${r.present}</td><td>${r.absent}</td><td>${r.leave}</td><td>${r.holiday}</td>
+    <td><b>${r.pct}%</b></td><td><span class="status-badge ${statusClass(r.status)}">${r.status}</span></td></tr>`).join('')}
+    </table></div></div>` : `<div class="card"><div class="empty">No data for this selection.</div></div>`;
+  }
+  await refreshStudentDropdown();
+  runReport();
+}
+
+/* ============================= SETTINGS ============================= */
+function renderSettings(){
+  const content=document.getElementById('content');
+  content.innerHTML = `
+  <div class="card">
+    <h3>Institute Information</h3>
+    <div class="toolbar">
+      <label>Institute Name</label><input id="setName" value="${DB.settings.instituteName}">
+      <label>Academic Session</label><input id="setSession" value="${DB.settings.session}">
+      <button class="btn sm" id="saveGeneral">Save</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Classes</h3>
+    <div class="tablewrap"><table>
+    <tr><th>Class Name</th><th>Teacher</th><th>Contact</th><th class="no-print">Action</th></tr>
+    ${DB.settings.classes.map(c=>`<tr>
+      <td><input class="cls-field" data-id="${c.id}" data-field="name" value="${c.name}"></td>
+      <td><input class="cls-field" data-id="${c.id}" data-field="teacher" value="${c.teacher||''}"></td>
+      <td><input class="cls-field" data-id="${c.id}" data-field="contact" value="${c.contact||''}"></td>
+      <td class="no-print"><button class="btn danger sm del-class" data-id="${c.id}">Delete</button></td>
+    </tr>`).join('')}
+    <tr class="no-print"><td colspan="4"><button class="btn sky sm" id="addClassBtn">+ Add Class</button></td></tr>
+    </table></div>
+  </div>
+  <div class="card">
+    <h3>Data</h3>
+    <p class="small-muted">All data is saved automatically in this browser on this computer, and the browser is asked to keep it as protected/persistent storage so it won't be auto-deleted to free up space. It will still be here next time you open this file, even after refreshing or closing it — as long as you use the same browser on the same computer. The only thing that can remove it is manually clearing that browser's site data/history — the "Export Backup" below is your safety net against that, so it's worth doing weekly.</p>
+    <div class="toolbar">
+      <button class="btn sm" id="exportBackup">⬇ Export Backup (JSON)</button>
+      <label style="margin-left:16px">Restore from backup</label>
+      <input type="file" id="importBackup" accept="application/json">
+    </div>
+  </div>`;
+  document.getElementById('saveGeneral').addEventListener('click', async ()=>{
+    DB.settings.instituteName=document.getElementById('setName').value;
+    DB.settings.session=document.getElementById('setSession').value;
+    await stSet('settings', DB.settings);
+    renderSidebar();
+  });
+  document.getElementById('addClassBtn').addEventListener('click', async ()=>{
+    const name = prompt('New class name:'); if(!name) return;
+    DB.settings.classes.push({id:slug(name)+'-'+Date.now(), name, teacher:'', contact:''});
+    await stSet('settings', DB.settings);
+    renderSidebar(); renderSettings();
+  });
+  content.querySelectorAll('.del-class').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('Delete this class? Attendance data for it will remain in storage but be hidden.')) return;
+      DB.settings.classes = DB.settings.classes.filter(c=>c.id!==btn.dataset.id);
+      await stSet('settings', DB.settings);
+      renderSidebar(); renderSettings();
+    });
+  });
+  content.querySelectorAll('.cls-field').forEach(inp=>{
+    inp.addEventListener('change', async ()=>{
+      const c = DB.settings.classes.find(c=>c.id===inp.dataset.id);
+      c[inp.dataset.field]=inp.value;
+      await stSet('settings', DB.settings);
+      renderSidebar();
+    });
+  });
+  document.getElementById('exportBackup').addEventListener('click', ()=>{
+    const dump={};
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k.startsWith(LS_PREFIX)) dump[k.slice(LS_PREFIX.length)] = JSON.parse(localStorage.getItem(k));
+    }
+    const blob=new Blob([JSON.stringify(dump,null,2)],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='attendance-backup-'+todayDateStr()+'.json';
+    a.click();
+  });
+  document.getElementById('importBackup').addEventListener('change', e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=async ()=>{
+      try{
+        const dump=JSON.parse(reader.result);
+        for(const k in dump){ localStorage.setItem(LS_PREFIX+k, JSON.stringify(dump[k])); }
+        alert('Backup restored. Reloading…');
+        location.reload();
+      }catch(err){ alert('Could not read this backup file.'); }
+    };
+    reader.readAsText(file);
+  });
+}
+
+/* ============================= INIT ============================= */
+(async function init(){
+  // Ask the browser to treat this data as persistent so it won't be
+  // automatically cleared under low-storage conditions.
+  try{
+    if(navigator.storage && navigator.storage.persist){
+      const granted = await navigator.storage.persist();
+      console.log('Persistent storage granted:', granted);
+    }
+  }catch(e){ /* not supported in this browser, safe to ignore */ }
+
+  await loadSettings();
+  renderSidebar();
+  route();
+
+  // Register service worker so the app can be installed and used offline (only works when hosted on http/https, not on a local file:// open)
+  if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+    try{ await navigator.serviceWorker.register('sw.js'); }catch(e){ console.log('SW registration skipped:', e.message); }
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "Forces Coaching Center - Attendance System",
+  "short_name": "FCC Attendance",
+  "description": "Attendance, teacher lateness, and fee tracking system for Forces Coaching Center",
+  "id": "./attendance-system.html",
+  "scope": "./",
+  "start_url": "./attendance-system.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F4F7FB",
+  "theme_color": "#0B2545",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
